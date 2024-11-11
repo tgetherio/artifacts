@@ -7,3 +7,6 @@
 [submodule "lib/communities"]
 	path = lib/communities
 	url = https://github.com/tgetherio/communities
+[submodule "lib/chainlink-local"]
+	path = lib/chainlink-local
+	url = https://github.com/smartcontractkit/chainlink-local
