@@ -78,9 +78,9 @@ contract crossChain is Test {
         assert(nftContract2_ == address(posts));
         assertEq(chainId2_, chainSelector);
         assertEq(tokenId2_, 1);
-        assertEq(owner1_, address(addr1));
-        assertEq(name1_, "LearnTgetherPosts");
-        assertEq(symbol1_, "TGP");
+        assertEq(owner2_, address(addr1));
+        assertEq(name2_, "LearnTgetherPosts");
+        assertEq(symbol2_, "TGP");
 
         assertEq(tokenURI1_, tokenURI2_);
 
