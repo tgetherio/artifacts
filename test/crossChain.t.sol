@@ -75,9 +75,6 @@ contract crossChain is Test {
         assertEq(name1_, "LearnTgetherPosts");
         assertEq(symbol1_, "TGP");
 
-        string memory tokenURI1String = abi.decode(tokenURI1_);
-        console.log(tokenURI1String);
-
         assert(nftContract2_ == address(posts));
         assertEq(chainId2_, chainSelector);
         assertEq(tokenId2_, 1);
