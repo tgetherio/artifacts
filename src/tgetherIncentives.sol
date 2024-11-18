@@ -2,15 +2,14 @@
 pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/automation/interfaces/ILogAutomation.sol";
-
-interface tgetherCommuunitiesInterfact{
+interface tgetherCommuunitiesInterface{
     function getCommunityOwner(string memory _communityName) external view returns (address);
     function CustomProposal(string memory _communityName,address _contractAddress)external payable returns(uint256);
     function getProposalResults( uint256 _proposalId ) external view returns (bool isActive, bool passed );
     function getFee() external view returns(uint256);
 }
 
-interface tgetherFundInterface{
+interface FundInterface{
         function fundUpkeep(address _contractAddress) external payable returns (bool);
     }
 
@@ -51,18 +50,18 @@ contract tgetherIncentives is ILogAutomation{
     uint256 public fee;
     uint256 public TGcommunitiesFee;
     uint256 public totalFee;
-    tgetherFundInterface public FundContract;
+    FundInterface public FundContract;
 
 
-    tgetherCommuunitiesInterfact public CommunityContract;
+    tgetherCommuunitiesInterface public CommunityContract;
     address thisAddress = address(this);
 
     uint256 public upkeepId;
     constructor(uint256 _feePrice, address _communityContractAddress, uint256 _communityFee, address _fundContract) {
         owner = msg.sender;
 
-        CommunityContract= tgetherCommuunitiesInterfact(_communityContractAddress);
-        FundContract = tgetherFundInterface(_fundContract);
+        CommunityContract= tgetherCommuunitiesInterface(_communityContractAddress);
+        FundContract = FundInterface(_fundContract);
 
         fee = _feePrice;
         TGcommunitiesFee = _communityFee;
@@ -284,7 +283,7 @@ contract tgetherIncentives is ILogAutomation{
     // Only Owner Funcitons
 
     function settgetherCommunityContract(address _contractAddress) external onlyOwner {
-        CommunityContract= tgetherCommuunitiesInterfact(_contractAddress);
+        CommunityContract= tgetherCommuunitiesInterface(_contractAddress);
 
     }
 
@@ -299,7 +298,7 @@ contract tgetherIncentives is ILogAutomation{
         totalFee = fee + _comfee;
     }
     function setFundContract(address _contract) external onlyOwner {
-       FundContract= tgetherFundInterface(_contract);
+       FundContract= FundInterface(_contract);
 
     }
 

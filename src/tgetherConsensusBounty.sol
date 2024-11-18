@@ -2,13 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/automation/interfaces/ILogAutomation.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
-interface tgetherPostConsensusInterface {
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+interface tgetherArtifactConsensusInterface {
     function getReviewsForSubmission(uint256 _submissionId) external view returns (uint256[] memory);
-    function getPostConsesous(uint256 _submissionId) external view returns (Consensus);
+    function getArtifactConsesous(uint256 _submissionId) external view returns (Consensus);
     function getReview(uint256 _reviewId) external view returns (Review memory);
-    function getPostSubmissionCommunity(uint256 _postId) external view returns (string memory);
+    function getArtifactSubmissionCommunity(uint256 _artifactId) external view returns (string memory);
     
     struct Review {
         address member;
@@ -22,7 +21,7 @@ interface tgetherPostConsensusInterface {
     enum Consensus { NotProcessed, Pending, Accepted, Rejected }
 }
 
-interface tgetherCommunityConsensusInterface {
+interface CommunityConsensusInterface {
     function getCommunityReviewParams(string memory _communityName) external view returns (uint256 numReviewsForAcceptance, uint256 credsNeededForReview, uint256 percentAcceptsNeeded);
 }
 
@@ -37,7 +36,7 @@ interface tgetherIncentivesInterface {
 }
 
 
-interface tgetherFundInterface {
+interface tgFundInterface {
     function fundUpkeep(address _contractAddress) external payable returns (bool);
 }
 
@@ -50,12 +49,12 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
     }
 
     mapping(uint256 => Bounty) public bounties;
-    mapping(uint256 => uint256[]) public postSubmissionBounties;
+    mapping(uint256 => uint256[]) public artifactSubmissionBounties;
     uint256 public bountiesId;
 
-    tgetherFundInterface public tgetherFundContract;
-    tgetherPostConsensusInterface public tgetherPostConsensusContract;
-    tgetherCommunityConsensusInterface public tgetherCommunityConsensusContract;
+    tgFundInterface public tgetherFundContract;
+    tgetherArtifactConsensusInterface public tgetherArtifactConsensusContract;
+    CommunityConsensusInterface public tgetherCommunityConsensusContract;
     tgetherIncentivesInterface public tgetherIncentivesContract;
     address public AutomationContractAddress;
 
@@ -80,14 +79,14 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
     // Constructor
     constructor(
         address _tgetherFundAddress, 
-        address _tgetherPostConsensusAddress, 
+        address _tgetherArtifactConsensusAddress, 
         address _tgetherCommunityConsensusAddress, 
         address _tgetherIncentivesAddress, 
         uint256 _fee
     ) {
-        tgetherFundContract = tgetherFundInterface(_tgetherFundAddress);
-        tgetherPostConsensusContract = tgetherPostConsensusInterface(_tgetherPostConsensusAddress);
-        tgetherCommunityConsensusContract = tgetherCommunityConsensusInterface(_tgetherCommunityConsensusAddress);
+        tgetherFundContract = tgFundInterface(_tgetherFundAddress);
+        tgetherArtifactConsensusContract = tgetherArtifactConsensusInterface(_tgetherArtifactConsensusAddress);
+        tgetherCommunityConsensusContract = CommunityConsensusInterface(_tgetherCommunityConsensusAddress);
         tgetherIncentivesContract = tgetherIncentivesInterface(_tgetherIncentivesAddress);
         fee = _fee;
         owner = msg.sender;
@@ -96,37 +95,37 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
 
     // Functions
     function createBounty(uint256 _submissionId) external payable returns (uint256) {
-        require(tgetherPostConsensusContract.getPostConsesous(_submissionId) == tgetherPostConsensusInterface.Consensus.Pending, "Post must be pending consensus");
+        require(tgetherArtifactConsensusContract.getArtifactConsesous(_submissionId) == tgetherArtifactConsensusInterface.Consensus.Pending, "Artifact must be pending consensus");
 
-        (uint256 comFee,) = tgetherIncentivesContract.getCommunityFeeInfo(tgetherPostConsensusContract.getPostSubmissionCommunity(_submissionId));
+        (uint256 comFee,) = tgetherIncentivesContract.getCommunityFeeInfo(tgetherArtifactConsensusContract.getArtifactSubmissionCommunity(_submissionId));
 
         require(msg.value > fee + comFee, "Fee must be paid to create a bounty");
 
         // Check if the community has an incentive structure
         require(tgetherIncentivesContract.getIncentiveParamsExist(
-            tgetherPostConsensusContract.getPostSubmissionCommunity(_submissionId)
+            tgetherArtifactConsensusContract.getArtifactSubmissionCommunity(_submissionId)
         ), "Community must have an incentive structure");
             
         bool _isFunded = tgetherFundContract.fundUpkeep{value: fee}(address(this));
         require(_isFunded, "Upkeep funding failed");
 
         bounties[bountiesId] = Bounty(msg.value - fee, msg.sender, false);
-        postSubmissionBounties[_submissionId].push(bountiesId);
+        artifactSubmissionBounties[_submissionId].push(bountiesId);
         emit BountyCreated(bountiesId, _submissionId, msg.sender, msg.value - fee);
         
         bountiesId++;
         return bountiesId - 1;
     }
 
-    function groupMembers(uint256 _postSubmission, uint256 _credsNeededForReview) internal view returns (address[] memory acceptMembers, address[] memory rejectMembers) {
-        uint256[] memory reviews = tgetherPostConsensusContract.getReviewsForSubmission(_postSubmission);
+    function groupMembers(uint256 _artifactSubmission, uint256 _credsNeededForReview) internal view returns (address[] memory acceptMembers, address[] memory rejectMembers) {
+        uint256[] memory reviews = tgetherArtifactConsensusContract.getReviewsForSubmission(_artifactSubmission);
         address[] memory tempAccept = new address[](reviews.length);
         address[] memory tempReject = new address[](reviews.length);
         uint256 acceptCount = 0;
         uint256 rejectCount = 0;
 
         for (uint256 i = 0; i < reviews.length; i++) {
-            tgetherPostConsensusInterface.Review memory review = tgetherPostConsensusContract.getReview(reviews[i]);
+            tgetherArtifactConsensusInterface.Review memory review = tgetherArtifactConsensusContract.getReview(reviews[i]);
             if (review.afterConsensus || review.creds < _credsNeededForReview) {
                 continue;
             }
@@ -155,13 +154,13 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
         address[] memory acceptMembers, 
         address[] memory rejectMembers, 
         string memory _communityName,
-        uint256 _postSubmission,
+        uint256 _artifactSubmission,
         uint256 _numReviewsForAcceptance
     ) internal view returns (address[] memory membersToPay) {
         tgetherIncentivesInterface.IncentiveStructure incentiveStructure = tgetherIncentivesContract.getInctiveStructure(_communityName);
-        tgetherPostConsensusInterface.Consensus consensus = tgetherPostConsensusContract.getPostConsesous(_postSubmission); 
+        tgetherArtifactConsensusInterface.Consensus consensus = tgetherArtifactConsensusContract.getArtifactConsesous(_artifactSubmission); 
         uint256 totalLength = acceptMembers.length + rejectMembers.length;
-        if (consensus == tgetherPostConsensusInterface.Consensus.NotProcessed || consensus == tgetherPostConsensusInterface.Consensus.Pending || totalLength < _numReviewsForAcceptance) {
+        if (consensus == tgetherArtifactConsensusInterface.Consensus.NotProcessed || consensus == tgetherArtifactConsensusInterface.Consensus.Pending || totalLength < _numReviewsForAcceptance) {
             return membersToPay;
         }
 
@@ -174,9 +173,9 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
                 membersToPay[acceptMembers.length + j] = rejectMembers[j];
             }
         } else if (incentiveStructure == tgetherIncentivesInterface.IncentiveStructure.consensusAligned) {            
-            if (consensus == tgetherPostConsensusInterface.Consensus.Accepted) {
+            if (consensus == tgetherArtifactConsensusInterface.Consensus.Accepted) {
                 membersToPay = acceptMembers;
-            } else if (consensus == tgetherPostConsensusInterface.Consensus.Rejected) {
+            } else if (consensus == tgetherArtifactConsensusInterface.Consensus.Rejected) {
                 membersToPay = rejectMembers;
             }
         }
@@ -210,7 +209,7 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
 
     function getPaymentAmount(uint256 _submissionId, uint256 reviewCount, string memory _communityName) internal view returns (uint256 amount) {
         uint256 totalPayment = 0;
-        uint256[] memory submissionBounties = postSubmissionBounties[_submissionId];
+        uint256[] memory submissionBounties = artifactSubmissionBounties[_submissionId];
         for (uint256 i = 0; i < submissionBounties.length; i++) {
             Bounty memory bounty = bounties[submissionBounties[i]];
             if (!bounty.bountyPaid) {
@@ -224,13 +223,13 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
     }
 
     function getPaymentArrays(uint256 _submissionId) internal view returns (bool upkeepNeeded, bytes memory performData) {
-        uint256[] memory submissionBounties = postSubmissionBounties[_submissionId];
+        uint256[] memory submissionBounties = artifactSubmissionBounties[_submissionId];
         if (submissionBounties.length == 0) {
             return (false, "");
         }
 
         upkeepNeeded = true;
-        string memory _communityName = tgetherPostConsensusContract.getPostSubmissionCommunity(_submissionId);
+        string memory _communityName = tgetherArtifactConsensusContract.getArtifactSubmissionCommunity(_submissionId);
 
         (uint256 numReviewsForAcceptance, uint256 credsNeededForReview, ) = tgetherCommunityConsensusContract.getCommunityReviewParams(_communityName);
         (address[] memory acceptMembers, address[] memory rejectMembers) = groupMembers(_submissionId, credsNeededForReview);
@@ -252,21 +251,21 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
     function processIncentives(bytes memory _performData) internal {
         (address[] memory addresses, uint256[] memory amounts, uint256 submissionId) = abi.decode(_performData, (address[], uint256[], uint256));
         require(addresses.length == amounts.length, "Addresses and amounts must be the same length");
-        tgetherPostConsensusInterface.Consensus consensus = tgetherPostConsensusContract.getPostConsesous(submissionId); 
-        require(consensus == tgetherPostConsensusInterface.Consensus.Accepted || consensus == tgetherPostConsensusInterface.Consensus.Rejected, "Post must be accepted or rejected");
+        tgetherArtifactConsensusInterface.Consensus consensus = tgetherArtifactConsensusContract.getArtifactConsesous(submissionId); 
+        require(consensus == tgetherArtifactConsensusInterface.Consensus.Accepted || consensus == tgetherArtifactConsensusInterface.Consensus.Rejected, "Artifact must be accepted or rejected");
 
         
         for (uint256 i = 0; i < addresses.length; i++) {
             _sendReward(addresses[i], amounts[i]);
         }
 
-        string memory _communityName = tgetherPostConsensusContract.getPostSubmissionCommunity(submissionId);
+        string memory _communityName = tgetherArtifactConsensusContract.getArtifactSubmissionCommunity(submissionId);
         (uint256 _communityFee, address _contractRecieveAddress) = tgetherIncentivesContract.getCommunityFeeInfo(_communityName);
         if (_communityFee > 0) {
             _sendReward(_contractRecieveAddress, _communityFee);
         }
 
-        uint256[] memory submissionBounties = postSubmissionBounties[submissionId];
+        uint256[] memory submissionBounties = artifactSubmissionBounties[submissionId];
         for (uint256 i = 0; i < submissionBounties.length; i++) {
             bounties[submissionBounties[i]].bountyPaid = true;
         }
@@ -278,7 +277,7 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
     ) external view returns (bool upkeepNeeded, bytes memory performData) {
         uint256 _submissionId = uint256(log.topics[1]);
 
-        if(postSubmissionBounties[_submissionId].length > 0) {
+        if(artifactSubmissionBounties[_submissionId].length > 0) {
             upkeepNeeded = true;
             (upkeepNeeded, performData) = getPaymentArrays(_submissionId); 
 
@@ -308,8 +307,8 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
 
 
     // Getters:
-    function GetPostSubmissionBounties(uint256 _submissionId) external view returns (uint256[] memory) {
-        return postSubmissionBounties[_submissionId];
+    function GetArtifactSubmissionBounties(uint256 _submissionId) external view returns (uint256[] memory) {
+        return artifactSubmissionBounties[_submissionId];
     }
 
     // Setters
@@ -318,15 +317,15 @@ contract tgetherConsensusBounty is ReentrancyGuard, ILogAutomation {
     }
 
     function setTgetherFundAddress(address _tgetherFundAddress) external onlyOwner {
-        tgetherFundContract = tgetherFundInterface(_tgetherFundAddress);
+        tgetherFundContract = tgFundInterface(_tgetherFundAddress);
     }
 
-    function setTgetherPostConsensusAddress(address _tgetherPostConsensusAddress) external onlyOwner {
-        tgetherPostConsensusContract = tgetherPostConsensusInterface(_tgetherPostConsensusAddress);
+    function setTgetherArtifactConsensusAddress(address _tgetherArtifactConsensusAddress) external onlyOwner {
+        tgetherArtifactConsensusContract = tgetherArtifactConsensusInterface(_tgetherArtifactConsensusAddress);
     }
 
     function setTgetherCommunityConsensusAddress(address _tgetherCommunityConsensusAddress) external onlyOwner {
-        tgetherCommunityConsensusContract = tgetherCommunityConsensusInterface(_tgetherCommunityConsensusAddress);
+        tgetherCommunityConsensusContract = CommunityConsensusInterface(_tgetherCommunityConsensusAddress);
     }
 
     function setTgetherIncentivesAddress(address _tgetherIncentivesAddress) external onlyOwner {
