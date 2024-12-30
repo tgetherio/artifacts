@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./Counters.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
-import "forge-std/console.sol";
 interface V2ContractInterface{
     function addPostData(uint256 _tokenId, address authorAddress, string memory authorName, string memory title, string memory content, string memory description ) external returns (bool);
 }
@@ -28,7 +27,7 @@ contract tgetherPosts is ERC721Enumerable {
     address v2ContractAddress;
     address artifactContractAddress;
 
-    mapping (uint256 => uint256) postToArtifactId;
+    mapping (uint256 => uint256) public postToArtifactId;
     modifier ownerOnly() {
         require(msg.sender == owner, "Not the contract owner `");
         _;
@@ -57,24 +56,21 @@ function mintPost(
         authorName: _authorName,
         description: _description
     });
-    console.log("newTokenId: ", newTokenId);
 
     _safeMint(msg.sender, newTokenId);
-    console.log("minted");
     _tokenIdCounter.increment();
 
     // Save post data in the mapping
     posts[newTokenId] = newPost;
 
     // Send the post data to the artifact contract
-    console.log("newTokenId: ", newTokenId);
     uint256 artifactId = ArtifactContractInterface(artifactContractAddress).sendArtifact(address(this), newTokenId);
     postToArtifactId[newTokenId] = artifactId;
 
 
     // Emit the event with the correct arguments
     emit PostMintedTo(newTokenId, msg.sender, _authorName);
-    return newTokenId;
+    return (newTokenId);
 }
 
 

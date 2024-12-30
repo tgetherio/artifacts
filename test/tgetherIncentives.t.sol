@@ -13,7 +13,7 @@ import "../src/ArtifactConsensusLane.sol";
 import "../src/tgetherArtifactConsensus.sol";
 import "../src/tgetherIncentives.sol";
 import "../src/Artifacts.sol";
-import "../src/SendLocalArtifact.sol";
+import {SendLocalArtifact} from "../src/SendLocalArtifact.sol";
 import "../src/MockCCIP.sol";
 
 

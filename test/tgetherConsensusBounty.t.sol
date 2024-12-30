@@ -14,7 +14,7 @@ import "../src/tgetherConsensusBounty.sol";
 import "../src/tgetherIncentives.sol";
 import "@tgether/communities/LaneRegistry.sol";
 import "../src/Artifacts.sol";
-import "../src/SendLocalArtifact.sol";
+import {SendLocalArtifact} from "../src/SendLocalArtifact.sol";
 import "../src/MockCCIP.sol";
 
 contract ConsensusBountyTest is Test {

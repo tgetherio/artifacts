@@ -6,7 +6,7 @@ import {CCIPLocalSimulator} from "@chainlink/local/src/ccip/CCIPLocalSimulator.s
 import {tgetherPosts} from "../src/tgetherPosts.sol";
 import "../src/SendArtifact.sol";
 import {Artifacts} from "../src/Artifacts.sol";
-import "../src/SendLocalArtifact.sol";
+import {SendLocalArtifact} from "../src/SendLocalArtifact.sol";
 import "forge-std/console.sol";
 contract crossChain is Test {
     CCIPLocalSimulator public ccipLocalSimulator;
@@ -40,14 +40,13 @@ contract crossChain is Test {
 
 
         chainSelector = chainSelector_;
-        console.log("chainSelector: ", chainSelector);
     }
 
     function test_CreateArtifacts() external {
         vm.prank(addr1,addr1);
         posts.mintPost("content", "title", "authorName", "description");  
         vm.prank(addr1,addr1);
-        uint256 fee = sendArtifact.TestFeePrice(address(posts), 1);
+        uint256 fee = sendArtifact.testFeePrice(address(posts), 1);
         sendArtifact.sendArtifact{value: fee }(address(posts), 1);
 
         (address nftContract1_,
